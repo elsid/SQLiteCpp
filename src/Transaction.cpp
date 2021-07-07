@@ -20,20 +20,25 @@ namespace SQLite
 
 // Begins the SQLite transaction
 Transaction::Transaction(Database& aDatabase) :
-    mDatabase(aDatabase),
-    mbCommited(false)
+    mDatabase(&aDatabase)
 {
-    mDatabase.exec("BEGIN");
+    mDatabase->exec("BEGIN");
+}
+
+Transaction::Transaction(Transaction&& other)
+    : mDatabase(other.mDatabase)
+{
+    other.mDatabase = nullptr;
 }
 
 // Safely rollback the transaction if it has not been committed.
 Transaction::~Transaction()
 {
-    if (false == mbCommited)
+    if (mDatabase != nullptr)
     {
         try
         {
-            mDatabase.exec("ROLLBACK");
+            mDatabase->exec("ROLLBACK");
         }
         catch (SQLite::Exception&)
         {
@@ -45,10 +50,10 @@ Transaction::~Transaction()
 // Commit the transaction.
 void Transaction::commit()
 {
-    if (false == mbCommited)
+    if (mDatabase != nullptr)
     {
-        mDatabase.exec("COMMIT");
-        mbCommited = true;
+        mDatabase->exec("COMMIT");
+        mDatabase = nullptr;
     }
     else
     {

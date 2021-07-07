@@ -52,6 +52,8 @@ public:
      */
     explicit Transaction(Database& aDatabase);
 
+    Transaction(Transaction&& other);
+
     // Transaction is non-copyable
     Transaction(const Transaction&) = delete;
     Transaction& operator=(const Transaction&) = delete;
@@ -67,7 +69,7 @@ public:
     void commit();
 
 private:
-    Database&   mDatabase;  ///< Reference to the SQLite Database Connection
+    Database*   mDatabase;  ///< Reference to the SQLite Database Connection
     bool        mbCommited; ///< True when commit has been called
 };
 

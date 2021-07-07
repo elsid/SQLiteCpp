@@ -102,3 +102,31 @@ TEST(Transaction, commitRollback)
     }
     EXPECT_EQ(1, nbRows);
 }
+
+TEST(Transaction, hasMoveConstructor)
+{
+    SQLite::Database db(":memory:", SQLite::OPEN_READWRITE|SQLite::OPEN_CREATE);
+    ASSERT_EQ(SQLite::OK, db.getErrorCode());
+
+    SQLite::Transaction srcTransaction(db);
+    SQLite::Transaction dstTransaction(std::move(srcTransaction));
+
+    EXPECT_EQ(0, db.exec("CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT)"));
+    ASSERT_EQ(SQLite::OK, db.getErrorCode());
+
+    EXPECT_EQ(1, db.exec("INSERT INTO test VALUES (NULL, \"first\")"));
+    ASSERT_EQ(1, db.getLastInsertRowid());
+
+    ASSERT_THROW(srcTransaction.commit(), SQLite::Exception);
+    dstTransaction.commit();
+
+    SQLite::Statement query(db, "SELECT * FROM test");
+    int nbRows = 0;
+    while (query.executeStep())
+    {
+        nbRows++;
+        EXPECT_EQ(1, query.getColumn(0).getInt());
+        EXPECT_STREQ("first", query.getColumn(1).getText());
+    }
+    EXPECT_EQ(1, nbRows);
+}
